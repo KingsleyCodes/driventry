@@ -1,10 +1,10 @@
 // pages/dashboard/logs/user/[id].js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <-- IMPORT useCallback
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../../../lib/auth';
 import { getUserActivityLogs, getUsers } from '../../../../lib/firestore';
 import DashboardLayout from '../../../../components/Layout/DashboardLayout';
-import Button from '../../components/UI/Button';
+import Button from '../../../../components/UI/Button'; // Adjusted relative path for Button
 import { 
   ArrowLeft, 
   History, 
@@ -22,22 +22,11 @@ export default function UserActivityLogs() {
   const router = useRouter();
   const { id } = router.query;
 
-  useEffect(() => {
-    getCurrentUser().then((userData) => {
-      if (!userData) {
-        router.push('/');
-        return;
-      }
-      if (userData.role !== 'admin') {
-        router.push('/dashboard');
-        return;
-      }
-      setUser(userData);
-      if (id) loadUserData();
-    });
-  }, [router, id]);
-
-  const loadUserData = async () => {
+  // FIX: Wrap loadUserData in useCallback to make it a stable dependency.
+  const loadUserData = useCallback(async () => {
+    // Only proceed if 'id' is available
+    if (!id) return;
+    
     try {
       setLoading(true);
       const [users, userLogs] = await Promise.all([
@@ -53,7 +42,31 @@ export default function UserActivityLogs() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]); // <-- Dependency array includes 'id' as it's used inside
+
+  // FIX: Include loadUserData in the dependency array.
+  useEffect(() => {
+    getCurrentUser().then((userData) => {
+      if (!userData) {
+        router.push('/');
+        return;
+      }
+      if (userData.role !== 'admin') {
+        router.push('/dashboard');
+        return;
+      }
+      setUser(userData);
+      // loadUserData is now called here as well, but only if id is present.
+      // We rely on the second useEffect below to handle the id dependency properly.
+    });
+  }, [router]);
+
+  // Use a separate useEffect to handle data loading when ID or auth state is ready
+  useEffect(() => {
+    if (user && id) {
+      loadUserData();
+    }
+  }, [id, loadUserData, user]); // <-- loadUserData is included here
 
   const getActionColor = (action) => {
     if (action.includes('deleted') || action.includes('deactivated')) {

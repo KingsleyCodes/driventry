@@ -1,5 +1,5 @@
 // pages/dashboard/customer-insights.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <-- Imported useCallback
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../lib/auth';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
@@ -51,22 +51,16 @@ export default function CustomerInsights() {
     low: 'green'
   };
 
-  useEffect(() => {
-    getCurrentUser().then((userData) => {
-      if (!userData) {
-        router.push('/');
-        return;
-      }
-      setUser(userData);
-      analyzeCustomers();
-    });
-  }, [router]);
-
-  const analyzeCustomers = async () => {
+  // FIX 1: Wrap analyzeCustomers in useCallback
+  const analyzeCustomers = useCallback(async () => {
     try {
       setAnalyzing(true);
       
       const params = new URLSearchParams();
+      // NOTE: Using stable filters object from scope is acceptable in useCallback with no dependency
+      // or we can add it to deps array but in this case, we prefer a stable function for useEffect
+      // so we use the state setter to trigger it later. Since this function is only used inside 
+      // useEffect and via Button click, we can keep the deps empty.
       if (filters.type !== 'all') params.append('type', filters.type);
       if (filters.minScore) params.append('minScore', filters.minScore);
 
@@ -85,7 +79,19 @@ export default function CustomerInsights() {
       setLoading(false);
       setAnalyzing(false);
     }
-  };
+  }, [filters]); // <-- analyzeCustomers needs 'filters' as a dependency
+
+  // FIX 1: Include analyzeCustomers in the dependency array
+  useEffect(() => {
+    getCurrentUser().then((userData) => {
+      if (!userData) {
+        router.push('/');
+        return;
+      }
+      setUser(userData);
+      analyzeCustomers();
+    });
+  }, [router, analyzeCustomers]); // <-- 'analyzeCustomers' is now a stable dependency
 
   const scheduleFollowup = async (customer, notes) => {
     try {
@@ -455,12 +461,18 @@ export default function CustomerInsights() {
               <h4 className="font-medium text-blue-900 mb-2">Suggested Script:</h4>
               {selectedCustomer.analysis.type === 'upgrade_eligible' && (
                 <div className="text-sm text-blue-800">
-                  <p>"Hi {selectedCustomer.name}, this is {user?.email} from our store. We noticed you purchased your device about {selectedCustomer.monthsSinceLastPurchase} months ago and wanted to check if you'd be interested in upgrading to the latest models we have available. We have some great trade-in offers right now!"</p>
+                  <p>
+                    {/* FIX 2: Unescaped Entities Errors */}
+                    &quot;Hi {selectedCustomer.name}, this is {user?.email} from our store. We noticed you purchased your device about {selectedCustomer.monthsSinceLastPurchase} months ago and wanted to check if you&apos;d be interested in upgrading to the latest models we have available. We have some great trade-in offers right now!&quot;
+                  </p>
                 </div>
               )}
               {selectedCustomer.analysis.type === 'support_followup' && (
                 <div className="text-sm text-blue-800">
-                  <p>"Hi {selectedCustomer.name}, this is {user?.email} from our store. We're doing a routine check-in with our valued customers. How has your device been performing? Are you experiencing any issues we can help with, or would you like us to check its condition?"</p>
+                  <p>
+                    {/* FIX 2: Unescaped Entities Errors */}
+                    &quot;Hi {selectedCustomer.name}, this is {user?.email} from our store. We&apos;re doing a routine check-in with our valued customers. How has your device been performing? Are you experiencing any issues we can help with, or would you like us to check its condition?&quot;
+                  </p>
                 </div>
               )}
             </div>

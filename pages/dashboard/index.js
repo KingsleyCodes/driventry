@@ -1,6 +1,7 @@
 // pages/dashboard/index.js
-import { useState, useEffect, useCallback } from 'react'; // <-- Import useCallback
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link'; // <-- IMPORTED LINK
 import { getCurrentUser } from '../../lib/auth';
 import { getProducts, getTransactions } from '../../lib/firestore';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
@@ -14,11 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // FIX: Wrap loadDashboardData in useCallback to make it a stable dependency.
   const loadDashboardData = useCallback(async () => {
     try {
-      // NOTE: setting loading state here is cleaner, though it was already defaulted to true.
-      // Setting it to true here ensures it resets correctly if data is reloaded later.
       setLoading(true);
       
       const [products, transactions] = await Promise.all([
@@ -31,7 +29,6 @@ export default function Dashboard() {
         .filter(t => t.type === 'sale')
         .reduce((sum, t) => sum + (t.total || 0), 0);
 
-      // Assuming minStock is a property on the product object
       const lowStockItems = products.filter(p => p.stock <= (p.minStock || 5)).length; 
       const outOfStockItems = products.filter(p => p.stock === 0).length;
 
@@ -45,8 +42,6 @@ export default function Dashboard() {
       ).length;
 
       // Get recent activities (last 5 transactions)
-      // Transactions should already be sorted descending by timestamp from getTransactions,
-      // so slice(0, 5) works for "recent" activities.
       const activities = transactions
         .slice(0, 5)
         .map(transaction => ({
@@ -73,10 +68,8 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array because state setters (setStats, setRecentActivities, setLoading) 
-         // and constants (getProducts, getTransactions) are stable.
+  }, []); 
 
-  // FIX: Include loadDashboardData in the dependency array
   useEffect(() => {
     getCurrentUser().then((userData) => {
       if (!userData) {
@@ -193,7 +186,8 @@ export default function Dashboard() {
               <Users size={20} className="text-gray-400" />
             </div>
             <div className="space-y-3">
-              <a
+              {/* FIX: Replaced <a> with <Link> for /dashboard/transactions */}
+              <Link
                 href="/dashboard/transactions"
                 className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
               >
@@ -204,9 +198,10 @@ export default function Dashboard() {
                   <h3 className="font-medium text-gray-900">Record Sale</h3>
                   <p className="text-sm text-gray-600">Process a new customer sale</p>
                 </div>
-              </a>
+              </Link>
 
-              <a
+              {/* FIX: Replaced <a> with <Link> for /dashboard/products */}
+              <Link
                 href="/dashboard/products"
                 className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
               >
@@ -217,10 +212,11 @@ export default function Dashboard() {
                   <h3 className="font-medium text-gray-900">Manage Products</h3>
                   <p className="text-sm text-gray-600">View and edit inventory</p>
                 </div>
-              </a>
+              </Link>
 
               {user?.role === 'admin' && (
-                <a
+                // FIX: Replaced <a> with <Link> for /dashboard/reports
+                <Link
                   href="/dashboard/reports"
                   className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
                 >
@@ -231,7 +227,7 @@ export default function Dashboard() {
                     <h3 className="font-medium text-gray-900">View Reports</h3>
                     <p className="text-sm text-gray-600">Analytics and insights</p>
                   </div>
-                </a>
+                </Link>
               )}
             </div>
           </div>
