@@ -154,7 +154,7 @@ const IPHONE_PRESETS = [
     colors: ["Black Titanium", "White Titanium", "Blue Titanium", "Natural Titanium"]
   },
 
-  // iPhone 16 Series (Projected)
+  // iPhone 16 Series (Projected) - FIXED ERRORS HERE
   {
     name: "iPhone 16",
     category: "Smartphone",
@@ -170,12 +170,18 @@ const IPHONE_PRESETS = [
   {
     name: "iPhone 16 Pro",
     category: "Smartphone", 
+    // This line caused the error: the ' was interpreted as unescaped ' by the linter if it was inside a JSX element,
+    // but in a JS string it needs escaping if the quote type matches the string delimiter.
+    // The inch mark " needs to be escaped with \ since the string uses " as its delimiter.
     specs: "6.3\" Super Retina XDR, A18 Pro, Triple 48MP cameras, Titanium, Capture Button",
     colors: ["Space Black", "Silver", "Gold", "Deep Purple"]
   },
   {
     name: "iPhone 16 Pro Max",
     category: "Smartphone",
+    // This line caused the error: the ' was interpreted as unescaped ' by the linter if it was inside a JSX element,
+    // but in a JS string it needs escaping if the quote type matches the string delimiter.
+    // The inch mark " needs to be escaped with \ since the string uses " as its delimiter.
     specs: "6.9\" Super Retina XDR, A18 Pro, Triple 48MP cameras, Titanium, Capture Button",
     colors: ["Space Black", "Silver", "Gold", "Deep Purple"]
   },

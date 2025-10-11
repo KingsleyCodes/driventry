@@ -23,27 +23,34 @@ export default function TransactionDetails() {
   const { id } = router.query;
 
   useEffect(() => {
+    // FIX: Define loadTransaction inside useEffect to ensure it is stable
+    // and correctly captured by the effect's dependency list.
+    const loadTransaction = async () => {
+      try {
+        setLoading(true);
+        // Note: You'll need to implement getTransaction in firestore.js
+        const transactionData = await getTransaction(id);
+        setTransaction(transactionData);
+      } catch (error) {
+        console.error('Error loading transaction:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    // End of FIX
+
     getCurrentUser().then((userData) => {
       if (!userData) {
         router.push('/');
         return;
       }
       setUser(userData);
+      // Only load transaction if 'id' is available from the router query
       if (id) loadTransaction();
     });
-  }, [router, id]);
+  }, [router, id]); // router and id are correctly included
 
-  const loadTransaction = async () => {
-    try {
-      // Note: You'll need to implement getTransaction in firestore.js
-      const transactionData = await getTransaction(id);
-      setTransaction(transactionData);
-    } catch (error) {
-      console.error('Error loading transaction:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // The original loadTransaction function is now removed.
 
   const getTransactionIcon = (type) => {
     const icons = {

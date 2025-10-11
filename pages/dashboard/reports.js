@@ -1,5 +1,5 @@
 // pages/dashboard/reports.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <-- Import useCallback
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../lib/auth';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
@@ -33,18 +33,8 @@ export default function Reports() {
   const [staffData, setStaffData] = useState(null);
   const router = useRouter();
 
-  useEffect(() => {
-    getCurrentUser().then((userData) => {
-      if (!userData) {
-        router.push('/');
-        return;
-      }
-      setUser(userData);
-      loadReports();
-    });
-  }, [router]);
-
-  const loadReports = async () => {
+  // FIX: Use useCallback to create a stable loadReports function
+  const loadReports = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -73,11 +63,27 @@ export default function Reports() {
 
     } catch (error) {
       console.error('Error loading reports:', error);
+      // NOTE: Using a stale value of `loading` here. Using an alert isn't ideal in React,
+      // but keeping it for consistency with the original code.
       alert('Error loading reports: ' + error.message);
     } finally {
+      // NOTE: setLoading(false) must be called to end the loading state
       setLoading(false);
     }
-  };
+  }, [period, startDate, endDate]); // Dependencies for loadReports
+
+  // FIX: Include loadReports in the dependency array
+  useEffect(() => {
+    getCurrentUser().then((userData) => {
+      if (!userData) {
+        router.push('/');
+        return;
+      }
+      setUser(userData);
+      // Call loadReports here
+      loadReports();
+    });
+  }, [router, loadReports]); // Now includes router and the stable loadReports
 
   const exportReport = async (type) => {
     try {
