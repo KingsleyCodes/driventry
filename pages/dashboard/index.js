@@ -1,5 +1,5 @@
 // pages/dashboard/index.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <-- Import useCallback
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../lib/auth';
 import { getProducts, getTransactions } from '../../lib/firestore';
@@ -14,19 +14,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    getCurrentUser().then((userData) => {
-      if (!userData) {
-        router.push('/');
-        return;
-      }
-      setUser(userData);
-      loadDashboardData();
-    });
-  }, [router]);
-
-  const loadDashboardData = async () => {
+  // FIX: Wrap loadDashboardData in useCallback to make it a stable dependency.
+  const loadDashboardData = useCallback(async () => {
     try {
+      // NOTE: setting loading state here is cleaner, though it was already defaulted to true.
+      // Setting it to true here ensures it resets correctly if data is reloaded later.
+      setLoading(true);
+      
       const [products, transactions] = await Promise.all([
         getProducts(),
         getTransactions({ limit: 50 }),
@@ -37,7 +31,8 @@ export default function Dashboard() {
         .filter(t => t.type === 'sale')
         .reduce((sum, t) => sum + (t.total || 0), 0);
 
-      const lowStockItems = products.filter(p => p.stock <= p.minStock).length;
+      // Assuming minStock is a property on the product object
+      const lowStockItems = products.filter(p => p.stock <= (p.minStock || 5)).length; 
       const outOfStockItems = products.filter(p => p.stock === 0).length;
 
       const today = new Date().toDateString();
@@ -50,7 +45,9 @@ export default function Dashboard() {
       ).length;
 
       // Get recent activities (last 5 transactions)
-      const recentActivities = transactions
+      // Transactions should already be sorted descending by timestamp from getTransactions,
+      // so slice(0, 5) works for "recent" activities.
+      const activities = transactions
         .slice(0, 5)
         .map(transaction => ({
           id: transaction.id,
@@ -70,13 +67,26 @@ export default function Dashboard() {
         todayTransactions,
       });
 
-      setRecentActivities(recentActivities);
+      setRecentActivities(activities);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array because state setters (setStats, setRecentActivities, setLoading) 
+         // and constants (getProducts, getTransactions) are stable.
+
+  // FIX: Include loadDashboardData in the dependency array
+  useEffect(() => {
+    getCurrentUser().then((userData) => {
+      if (!userData) {
+        router.push('/');
+        return;
+      }
+      setUser(userData);
+      loadDashboardData();
+    });
+  }, [router, loadDashboardData]);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -105,10 +115,8 @@ export default function Dashboard() {
       <DashboardLayout user={user} activePage="overview">
         <div className="p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-              <p className="text-gray-600">Loading dashboard...</p>
-            </div>
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            <p className="text-gray-600 ml-4">Loading dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -141,7 +149,11 @@ export default function Dashboard() {
                 recentActivities.map((activity) => {
                   const IconComponent = getActivityIcon(activity.type);
                   return (
-                    <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div 
+                      key={activity.id} 
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/dashboard/transactions/${activity.id}`)}
+                    >
                       <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
                         <IconComponent size={16} />
                       </div>
@@ -183,10 +195,10 @@ export default function Dashboard() {
             <div className="space-y-3">
               <a
                 href="/dashboard/transactions"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
               >
-                <div className="p-2 bg-primary-100 rounded-lg group-hover:bg-primary-200 transition-colors">
-                  <DollarSign size={20} className="text-primary-600" />
+                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <DollarSign size={20} className="text-blue-600" />
                 </div>
                 <div className="ml-4">
                   <h3 className="font-medium text-gray-900">Record Sale</h3>
@@ -196,10 +208,10 @@ export default function Dashboard() {
 
               <a
                 href="/dashboard/products"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
               >
-                <div className="p-2 bg-primary-100 rounded-lg group-hover:bg-primary-200 transition-colors">
-                  <Package size={20} className="text-primary-600" />
+                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <Package size={20} className="text-blue-600" />
                 </div>
                 <div className="ml-4">
                   <h3 className="font-medium text-gray-900">Manage Products</h3>
@@ -210,10 +222,10 @@ export default function Dashboard() {
               {user?.role === 'admin' && (
                 <a
                   href="/dashboard/reports"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
+                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
                 >
-                  <div className="p-2 bg-primary-100 rounded-lg group-hover:bg-primary-200 transition-colors">
-                    <TrendingUp size={20} className="text-primary-600" />
+                  <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                    <TrendingUp size={20} className="text-blue-600" />
                   </div>
                   <div className="ml-4">
                     <h3 className="font-medium text-gray-900">View Reports</h3>
