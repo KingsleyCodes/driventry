@@ -1,5 +1,5 @@
 // pages/dashboard/logs.js
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../lib/auth';
 import { getActivityLogs, getUsers } from '../../lib/firestore';

@@ -1,5 +1,5 @@
 // pages/api/transactions/create.js
-import { adminDb } from '../../../../lib/firebase-admin';
+import { adminDb } from '../../../lib/firebase-admin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       const productRef = adminDb.collection('products').doc(item.productId);
       const productDoc = await productRef.get();
       
-      if (!productDoc.exists()) {
+      if (!productDoc.exists) {
         return res.status(404).json({ error: `Product ${item.productId} not found` });
       }
 

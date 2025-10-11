@@ -104,8 +104,9 @@ export default function Products() {
 
     try {
       const product = products.find(p => p.id === productId);
-      // Note: In a real app, you'd call deleteProduct here
-      // For now, we'll just log the activity
+      
+      // ACTUALLY DELETE THE PRODUCT FROM FIRESTORE
+      await deleteProduct(productId);
       
       await logActivity(
         {
@@ -118,8 +119,9 @@ export default function Products() {
         user.email
       );
 
-      // Reload products to reflect deletion
-      loadProducts();
+      // Immediately update local state for better UX
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      
     } catch (error) {
       console.error('Error deleting product:', error);
     }
@@ -130,7 +132,7 @@ export default function Products() {
       <DashboardLayout user={user} activePage="products">
         <div className="p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="loader"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           </div>
         </div>
       </DashboardLayout>

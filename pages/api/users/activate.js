@@ -1,5 +1,5 @@
 // pages/api/users/activate.js
-import { adminDb } from '../../../../lib/firebase-admin';
+import { adminDb } from '../../../lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 
 export default async function handler(req, res) {
