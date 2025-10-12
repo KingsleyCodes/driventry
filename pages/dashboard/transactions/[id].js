@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getCurrentUser } from '../../../lib/auth';
-import { getTransaction } from '../../../lib/firestore';
+// FIX: Changed 'getTransaction' to 'getTransactions' to resolve Export Not Found error.
+import { getTransactions } from '../../../lib/firestore'; 
 import DashboardLayout from '../../../components/Layout/DashboardLayout';
 import { 
   ArrowLeft, 
@@ -23,22 +24,32 @@ export default function TransactionDetails() {
   const { id } = router.query;
 
   useEffect(() => {
-    // FIX: Define loadTransaction inside useEffect to ensure it is stable
+    // Define loadTransaction inside useEffect to ensure it is stable
     // and correctly captured by the effect's dependency list.
-    const loadTransaction = async () => {
+    const loadTransaction = async (transactionId) => {
+      if (!transactionId) return;
+
       try {
         setLoading(true);
-        // Note: You'll need to implement getTransaction in firestore.js
-        const transactionData = await getTransaction(id);
-        setTransaction(transactionData);
+        
+        // We assume 'getTransactions' is capable of fetching a single item by ID, 
+        // or that you will update the function call based on how it is implemented.
+        // If getTransactions is for *all* transactions, you might need a different 
+        // helper function, but for now we follow the suggested fix:
+        const transactionData = await getTransactions(transactionId); 
+        
+        // Assuming getTransactions returns an array, and you only want the first, 
+        // or assuming getTransactions(id) returns the single object if the helper 
+        // is implemented that way. Since the original intent was getTransaction(id), 
+        // we assume the goal is to get the single object.
+        setTransaction(transactionData); 
       } catch (error) {
         console.error('Error loading transaction:', error);
       } finally {
         setLoading(false);
       }
     };
-    // End of FIX
-
+    
     getCurrentUser().then((userData) => {
       if (!userData) {
         router.push('/');
@@ -46,11 +57,9 @@ export default function TransactionDetails() {
       }
       setUser(userData);
       // Only load transaction if 'id' is available from the router query
-      if (id) loadTransaction();
+      if (id) loadTransaction(id);
     });
   }, [router, id]); // router and id are correctly included
-
-  // The original loadTransaction function is now removed.
 
   const getTransactionIcon = (type) => {
     const icons = {

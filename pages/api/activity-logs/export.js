@@ -1,5 +1,6 @@
 // pages/api/activity-logs/export.js
-import { adminDb } from '../../../../lib/firebase-admin';
+// FIX: Changed '../../../../lib/firebase-admin' to '../../../lib/firebase-admin'
+import { adminDb } from '../../../lib/firebase-admin';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

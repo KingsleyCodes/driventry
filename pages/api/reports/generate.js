@@ -1,5 +1,6 @@
 // pages/api/reports/generate.js
-import { adminDb } from '../../../../lib/firebase-admin';
+// FIX: Changed '../../../../lib/firebase-admin' to '../../../lib/firebase-admin'
+import { adminDb } from '../../../lib/firebase-admin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,13 +17,14 @@ export default async function handler(req, res) {
 
     switch (reportType) {
       case 'sales':
-        const salesQuery = adminDb.collection('transactions')
+        let salesQuery = adminDb.collection('transactions')
           .where('type', '==', 'sale')
           .where('timestamp', '>=', start)
           .where('timestamp', '<=', end);
 
         if (userId) {
-          salesQuery.where('userId', '==', userId);
+          // NOTE: Ensure you assign the result back to salesQuery if chaining a .where() on the query object
+          salesQuery = salesQuery.where('userId', '==', userId); 
         }
 
         const salesSnapshot = await salesQuery.get();
